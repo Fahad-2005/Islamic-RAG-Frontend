@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { BackendResponse, Citation, Confidence } from "@/lib/types";
 
-const RAG_URL = "https://islamic-rag-o50w.onrender.com/ask";
+const RAG_URL = process.env.RAG_URL;
 
 /** Below this cosine-distance the passage is treated as a real match. */
 const STRONG_DISTANCE = 0.4;
@@ -68,6 +68,15 @@ export async function POST(request: Request) {
         const stream = new ReadableStream<Uint8Array>({
           async start(controller) {
             try {
+              if (!RAG_URL) {
+                controller.enqueue(
+                  sse("error", {
+                    message: "The verification service is not configured.",
+                  }),
+                );
+                return;
+              }
+
               const upstream = await fetch(RAG_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
